@@ -130,6 +130,8 @@ button { font-family: var(--font); cursor: pointer; border: none; }
   border: 2px solid var(--line); border-radius: var(--radius); padding: 18px 22px; flex: 1; text-align: center;
 }
 .prompt.small { font-size: 21px; }
+.prompt-tr { display: block; font-family: var(--font); font-size: 15px; color: var(--muted); font-weight: 700; font-style: italic; margin-top: 6px; }
+.tr-hint { display: block; font-family: var(--font); font-size: 13px; color: var(--muted); font-weight: 700; font-style: italic; }
 
 .opts { display: flex; flex-direction: column; gap: 10px; }
 .opt {

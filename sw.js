@@ -1,7 +1,7 @@
 // Niggr offline cache — bump the version when app files change
-const CACHE = "niggr-v2";
+const CACHE = "niggr-v3";
 const ASSETS = [
-  "./", "index.html", "styles.css", "data.js", "app.js",
+  "./", "index.html", "styles.css", "data.js", "audiomap.js", "app.js",
   "manifest.webmanifest", "icons/icon-180.png", "icons/icon-192.png", "icons/icon-512.png",
 ];
 

@@ -24,6 +24,21 @@ function level() { return Math.floor(S.xp / 100) + 1; }
 
 const ALL_WORDS = LESSONS.filter(l => l.type === "vocab").flatMap(l => l.words);
 
+// Amharic text → transliteration, including per-word entries for phrases
+// whose transliteration is word-aligned (used for tile hints).
+const WORD_TR = {};
+ALL_WORDS.forEach(w => {
+  WORD_TR[w.am] = w.tr;
+  const aw = w.am.split(" "), tw = w.tr.split(" ");
+  if (aw.length > 1 && aw.length === tw.length) {
+    aw.forEach((a, i) => { if (!WORD_TR[a]) WORD_TR[a] = tw[i]; });
+  }
+});
+function trHint(am) {
+  const tr = WORD_TR[am];
+  return tr ? ` <small class="tr-hint">(${esc(tr)})</small>` : "";
+}
+
 // Amharic text-to-speech if the system has an am-ET voice
 let amVoice = null;
 function findVoice() {
@@ -31,11 +46,18 @@ function findVoice() {
   amVoice = speechSynthesis.getVoices().find(v => v.lang && v.lang.toLowerCase().startsWith("am")) || null;
 }
 if (window.speechSynthesis) { findVoice(); speechSynthesis.onvoiceschanged = findVoice; }
-// Prefer a local Amharic voice; otherwise stream TTS audio.
+// Prefer bundled recordings, then a local Amharic voice, then streamed TTS.
 let ttsAudio = null;
 function speak(text) {
-  const t = text.replace(/\.\.\./g, "").trim();
+  const t = text.replace(/\.\.\./g, "").replace(/\s+/g, " ").trim();
   if (!t) return;
+  const file = typeof AUDIO_MAP !== "undefined" && AUDIO_MAP[t];
+  if (file) {
+    if (ttsAudio) ttsAudio.pause();
+    ttsAudio = new Audio("audio/" + file);
+    ttsAudio.play().catch(() => {});
+    return;
+  }
   if (amVoice) {
     const u = new SpeechSynthesisUtterance(t);
     u.voice = amVoice; u.lang = amVoice.lang; u.rate = 0.85;
@@ -118,7 +140,7 @@ function vocabQuestions(lesson, includeTeach) {
     const others = lesson.words.filter(o => o !== w);
     const pool = others.length >= 3 ? others : others.concat(ALL_WORDS.filter(o => o.am !== w.am));
     if (Math.random() < 0.5) {
-      return mcq(`<div class="prompt am">${esc(w.am)}</div>`, w.am, w.en, sample(pool, 3).map(o => o.en), { w, amOpts: false, title: "What does this mean?" });
+      return mcq(`<div class="prompt am">${esc(w.am)}<span class="prompt-tr">(${esc(w.tr)})</span></div>`, w.am, w.en, sample(pool, 3).map(o => o.en), { w, amOpts: false, title: "What does this mean?" });
     }
     return mcq(`<div class="prompt small">${esc(w.en)}</div>`, null, w.am, sample(pool, 3).map(o => o.am), { w, amOpts: true, title: "Choose the Amharic" });
   });
@@ -172,7 +194,7 @@ function startReview() {
   const queue = shuffle(words.map(w => {
     const pool = ALL_WORDS.filter(o => o.am !== w.am);
     return Math.random() < 0.5
-      ? mcq(`<div class="prompt am">${esc(w.am)}</div>`, w.am, w.en, sample(pool, 3).map(o => o.en), { w, title: "What does this mean?" })
+      ? mcq(`<div class="prompt am">${esc(w.am)}<span class="prompt-tr">(${esc(w.tr)})</span></div>`, w.am, w.en, sample(pool, 3).map(o => o.en), { w, title: "What does this mean?" })
       : mcq(`<div class="prompt small">${esc(w.en)}</div>`, null, w.am, sample(pool, 3).map(o => o.am), { w, amOpts: true, title: "Choose the Amharic" });
   }));
   L = { lesson: { id: "__review", title: "Review", emoji: "🧠" }, queue, idx: 0, hearts: Infinity, correct: 0, wrong: 0, xp: 0, review: true };
@@ -225,18 +247,20 @@ function renderTeachFidel(q) {
         <div class="big am">${fidelChar(q.f, 0)}</div>
         <div class="tr">"${esc(q.f.sound)}" sound</div>
         ${q.f.note ? `<div class="note">${esc(q.f.note)}</div>` : ""}
+        ${speakBtn(fidelChar(q.f, 0))}
         <div class="forms">${forms}</div>
         <div class="note">One letter, seven vowel forms</div>
       </div>
     </div>
     <div class="footer"><button class="bigbtn" onclick="next()">Continue</button></div>`;
+  speak(fidelChar(q.f, 0));
 }
 
 let picked = null;
 function renderMcq(q) {
   picked = null;
   const opts = q.options.map((o, i) =>
-    `<button class="opt ${q.amOpts ? "am am-opt" : ""}" id="opt${i}" onclick="pick(${i})">${esc(o)}</button>`).join("");
+    `<button class="opt ${q.amOpts ? "am am-opt" : ""}" id="opt${i}" onclick="pick(${i})">${esc(o)}${q.amOpts ? trHint(o) : ""}</button>`).join("");
   app.innerHTML = `${lessonHeader()}
     <div class="qwrap">
       <div class="qtitle">${q.title}</div>
@@ -301,7 +325,7 @@ function drawAsm() {
     || `<span class="hint">Tap the tiles below</span>`;
   $("#bank").innerHTML = q.tiles.map((t, i) => asm.includes(i)
     ? `<button class="tile ghost" disabled>${esc(t)}</button>`
-    : `<button class="tile am" onclick="asmAdd(${i})">${esc(t)}</button>`).join("");
+    : `<button class="tile am" onclick="asmAdd(${i})">${esc(t)}${trHint(t)}</button>`).join("");
   $("#checkbtn").disabled = asm.length === 0;
 }
 function asmAdd(i) { asm.push(i); drawAsm(); }
@@ -334,7 +358,7 @@ function renderMatch(q) {
   const right = shuffle(q.pairs.map(p => p.b));
   const tiles = [];
   for (let i = 0; i < left.length; i++) {
-    tiles.push(`<button class="mtile am am-opt" data-side="a" data-v="${esc(left[i])}" onclick="mPick(this)">${esc(left[i])}</button>`);
+    tiles.push(`<button class="mtile am am-opt" data-side="a" data-v="${esc(left[i])}" onclick="mPick(this)">${esc(left[i])}${trHint(left[i])}</button>`);
     tiles.push(`<button class="mtile" data-side="b" data-v="${esc(right[i])}" onclick="mPick(this)">${esc(right[i])}</button>`);
   }
   app.innerHTML = `${lessonHeader()}
