@@ -97,6 +97,8 @@ button { font-family: var(--font); cursor: pointer; border: none; }
 /* ===== Lesson screen ===== */
 .lesson-top { display: flex; align-items: center; gap: 12px; padding: 8px 0 20px; }
 .quitbtn { background: none; font-size: 22px; color: var(--muted); font-weight: 900; }
+.backbtn { background: none; font-size: 30px; color: var(--muted); font-weight: 900; line-height: 1; padding: 0 4px 4px; }
+.backbtn:disabled { opacity: .3; cursor: default; }
 .progress { flex: 1; height: 14px; background: var(--line); border-radius: 99px; overflow: hidden; }
 .progress > div {
   height: 100%; background: var(--green); border-radius: 99px;

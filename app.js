@@ -207,9 +207,14 @@ function lessonHeader() {
   return `
     <div class="lesson-top">
       <button class="quitbtn" onclick="renderHome()">✕</button>
+      <button class="backbtn" onclick="goBack()" ${L.idx === 0 ? "disabled" : ""} title="Previous">‹</button>
       <div class="progress"><div style="width:${pct}%"></div></div>
       <div class="hearts">${hearts}</div>
     </div>`;
+}
+
+function goBack() {
+  if (L.idx > 0) { L.idx--; renderQuestion(); }
 }
 
 function renderQuestion() {
@@ -281,24 +286,28 @@ function check() {
   const q = L.queue[L.idx];
   const chosen = q.options[picked];
   const good = chosen === q.answer;
+  const replay = !!q.done; // revisited via the back button — practice only, no scoring
   document.querySelectorAll(".opt").forEach((b, j) => {
     b.disabled = true;
     if (q.options[j] === q.answer) b.classList.add("right");
     else if (j === picked) b.classList.add("wrong");
   });
-  if (q.w) { good ? stat(q.w.am).ok++ : stat(q.w.am).bad++; }
+  if (!replay && q.w) { good ? stat(q.w.am).ok++ : stat(q.w.am).bad++; }
   if (good) {
-    L.correct++; L.xp++;
-    $("#foot").innerHTML = `<div class="feedback good">Nice! ⚡+1 XP</div><button class="bigbtn" onclick="next()">Continue</button>`;
+    if (!replay) { L.correct++; L.xp++; }
+    $("#foot").innerHTML = `<div class="feedback good">Nice!${replay ? "" : " ⚡+1 XP"}</div><button class="bigbtn" onclick="next()">Continue</button>`;
   } else {
-    L.wrong++;
-    if (!L.review) L.hearts--;
-    // re-queue a fresh copy of the missed question at the end
-    L.queue.push(Object.assign({}, q, { options: shuffle(q.options) }));
+    if (!replay) {
+      L.wrong++;
+      if (!L.review) L.hearts--;
+      // re-queue a fresh copy of the missed question at the end
+      L.queue.push(Object.assign({}, q, { options: shuffle(q.options), done: false }));
+    }
     const fx = q.w ? `${esc(q.answer)}${q.w.tr ? ` <i>(${esc(q.w.tr)})</i>` : ""}` : esc(q.answer);
     $("#foot").innerHTML = `<div class="feedback bad">Correct answer:<div class="fx ${q.amOpts ? "am" : ""}">${fx}</div></div>
-      <button class="bigbtn" onclick="${L.hearts <= 0 ? "renderFail()" : "next()"}">Continue</button>`;
+      <button class="bigbtn" onclick="${!replay && L.hearts <= 0 ? "renderFail()" : "next()"}">Continue</button>`;
   }
+  q.done = true;
   save();
 }
 
@@ -334,19 +343,23 @@ function checkAsm() {
   const q = L.queue[L.idx];
   const built = asm.map(i => q.tiles[i]).join(" ");
   const good = built === q.w.am;
+  const replay = !!q.done;
   document.querySelectorAll(".tile").forEach(b => b.disabled = true);
-  good ? stat(q.w.am).ok++ : stat(q.w.am).bad++;
+  if (!replay) { good ? stat(q.w.am).ok++ : stat(q.w.am).bad++; }
   if (good) {
-    L.correct++; L.xp++;
+    if (!replay) { L.correct++; L.xp++; }
     speak(q.w.am);
-    $("#foot").innerHTML = `<div class="feedback good">Nice! ⚡+1 XP</div><button class="bigbtn" onclick="next()">Continue</button>`;
+    $("#foot").innerHTML = `<div class="feedback good">Nice!${replay ? "" : " ⚡+1 XP"}</div><button class="bigbtn" onclick="next()">Continue</button>`;
   } else {
-    L.wrong++;
-    if (!L.review) L.hearts--;
-    L.queue.push(Object.assign({}, q, { tiles: shuffle(q.tiles) }));
+    if (!replay) {
+      L.wrong++;
+      if (!L.review) L.hearts--;
+      L.queue.push(Object.assign({}, q, { tiles: shuffle(q.tiles), done: false }));
+    }
     $("#foot").innerHTML = `<div class="feedback bad">Correct answer:<div class="fx am">${esc(q.w.am)} <i>(${esc(q.w.tr)})</i></div></div>
-      <button class="bigbtn" onclick="${L.hearts <= 0 ? "renderFail()" : "next()"}">Continue</button>`;
+      <button class="bigbtn" onclick="${!replay && L.hearts <= 0 ? "renderFail()" : "next()"}">Continue</button>`;
   }
+  q.done = true;
   save();
 }
 
@@ -383,11 +396,11 @@ function mPick(el) {
     mSel = { a: null, b: null };
     if (ok) {
       [a, b].forEach(t => { t.classList.remove("sel"); t.classList.add("gone"); });
-      L.xp++; L.correct++;
-      if (--mLeft === 0) setTimeout(next, 350);
+      if (!q.done) { L.xp++; L.correct++; }
+      if (--mLeft === 0) { q.done = true; setTimeout(next, 350); }
     } else {
       [a, b].forEach(t => { t.classList.remove("sel"); t.classList.add("err"); setTimeout(() => t.classList.remove("err"), 350); });
-      if (!L.review && --L.hearts <= 0) { save(); return setTimeout(renderFail, 400); }
+      if (!L.review && !q.done && --L.hearts <= 0) { save(); return setTimeout(renderFail, 400); }
     }
   }
 }
