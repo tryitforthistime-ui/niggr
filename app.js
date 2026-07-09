@@ -1,5 +1,5 @@
 // ============================================================
-// Niggr · ንግግር — app engine
+// Niggir · ንግግር — app engine
 // ============================================================
 
 const $ = (sel) => document.querySelector(sel);
@@ -110,7 +110,7 @@ function renderHome() {
   app.innerHTML = `
     <div class="topbar">
       <div class="brand">
-        <div class="title"><span class="am">ንግግር</span> Niggr</div>
+        <div class="title"><span class="am">ንግግር</span> Niggir</div>
         <div class="sub">Learn Amharic · Level ${level()}</div>
       </div>
       <div class="stats">

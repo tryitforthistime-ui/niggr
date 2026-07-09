@@ -1,5 +1,5 @@
 // ============================================================
-// Niggr · ንግግር — Amharic learning data
+// Niggir · ንግግር — Amharic learning data
 // Vocabulary curated to standard Amharic dictionary orthography
 // (Ge'ez script forms as found in Kane's Amharic–English
 // Dictionary and standard references). Edit freely to extend.

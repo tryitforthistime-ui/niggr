@@ -1,12 +1,13 @@
-// Niggr offline cache — bump the version when app files change
-const CACHE = "niggr-v3";
+// Niggir offline cache — bump the version when app files change
+const CACHE = "niggr-v5";
 const ASSETS = [
   "./", "index.html", "styles.css", "data.js", "audiomap.js", "app.js",
   "manifest.webmanifest", "icons/icon-180.png", "icons/icon-192.png", "icons/icon-512.png",
 ];
 
 self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
+  // cache:"reload" bypasses the HTTP cache so a new version never installs stale files
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS.map((u) => new Request(u, { cache: "reload" })))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener("activate", (e) => {
