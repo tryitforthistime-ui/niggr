@@ -1,5 +1,5 @@
 // Niggir offline cache — bump the version when app files change
-const CACHE = "niggr-v6";
+const CACHE = "niggr-v7";
 const ASSETS = [
   "./", "index.html", "styles.css", "data.js", "audiomap.js", "app.js",
   "manifest.webmanifest", "icons/icon-180.png", "icons/icon-192.png", "icons/icon-512.png",
@@ -13,7 +13,7 @@ self.addEventListener("install", (e) => {
 self.addEventListener("activate", (e) => {
   e.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(keys.filter((k) => k.startsWith("niggr-") && k !== CACHE).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
